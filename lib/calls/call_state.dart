@@ -1,26 +1,24 @@
 import 'dart:io';
-import 'package:call_log/call_log.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:phone_state/phone_state.dart';
 
-class Example extends StatefulWidget {
-  const Example({Key? key}) : super(key: key);
+class CallPage extends StatefulWidget {
+  const CallPage({Key? key}) : super(key: key);
 
   @override
-  _ExampleState createState() => _ExampleState();
+  _CallPageState createState() => _CallPageState();
 }
 
-class _ExampleState extends State<Example> {
+class _CallPageState extends State<CallPage> {
   PhoneStateStatus status = PhoneStateStatus.NOTHING;
   bool granted = false;
 
-  CallLogEntry? _callLogEntries;
-
   Future<bool> requestPermission() async {
-    var permission = await Permission.phone.request();
+    var status = await Permission.phone.request();
 
-    switch (permission) {
+    switch (status) {
       case PermissionStatus.denied:
       case PermissionStatus.restricted:
       case PermissionStatus.limited:
@@ -34,106 +32,67 @@ class _ExampleState extends State<Example> {
   @override
   void initState() {
     super.initState();
-    setStream();
+    if (Platform.isIOS) setStream();
   }
 
-  bool isLoading = false;
+  static const platform = MethodChannel('telephony');
+
+  Future<void> endCall() async {
+    try {
+      await platform.invokeMethod('endCall');
+    } on PlatformException catch (e) {
+      print(e.toString());
+    }
+  }
 
   void setStream() {
-    PhoneState.phoneStateStream.listen((event) async {
-      if (event != null) {
-        setState(() {
+    PhoneState.phoneStateStream.listen((event) {
+      setState(() {
+        if (event != null) {
           status = event;
-          isLoading = true;
-        });
-        if (status == PhoneStateStatus.CALL_ENDED) {
-          print(event.name);
-          final Iterable<CallLogEntry> result = await CallLog.query();
-          setState(() {
-            _callLogEntries = result.elementAt(0);
-          });
-          setState(() {
-            isLoading = false;
-          });
+          Future.delayed(const Duration(seconds: 3)).then((_) => endCall());
         }
-      }
+      });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    const TextStyle mono = TextStyle(fontFamily: 'monospace');
-    //  final List<Widget> children = <Widget>[];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Phone State"),
         centerTitle: true,
       ),
       body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (Platform.isAndroid)
-                MaterialButton(
-                  onPressed: !granted
-                      ? () async {
-                          bool temp = await requestPermission();
-                          setState(() {
-                            granted = temp;
-                            if (granted) {
-                              setStream();
-                            }
-                          });
-                        }
-                      : null,
-                  child: const Text("Request permission of Phone"),
-                ),
-              const Text(
-                "Status of call",
-                style: TextStyle(fontSize: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (Platform.isAndroid)
+              MaterialButton(
+                onPressed: !granted
+                    ? () async {
+                        bool temp = await requestPermission();
+                        setState(() {
+                          granted = temp;
+                          if (granted) {
+                            setStream();
+                          }
+                        });
+                      }
+                    : null,
+                child: const Text("Request permission of Phone"),
               ),
-              Icon(
-                getIcons(),
-                color: getColor(),
-                size: 80,
-              ),
-              isLoading
-                  ? const CircularProgressIndicator()
-                  : Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: <Widget>[
-                          const Divider(),
-                          Text(
-                              'F. NUMBER  : ${_callLogEntries?.formattedNumber}',
-                              style: mono),
-                          Text(
-                              'C.M. NUMBER: ${_callLogEntries?.cachedMatchedNumber}',
-                              style: mono),
-                          Text('NUMBER     : ${_callLogEntries?.number}',
-                              style: mono),
-                          Text('NAME       : ${_callLogEntries?.name}',
-                              style: mono),
-                          Text('TYPE       : ${_callLogEntries?.callType}',
-                              style: mono),
-                          Text('DURATION   : ${_callLogEntries?.duration}',
-                              style: mono),
-                          Text(
-                              'ACCOUNT ID : ${_callLogEntries?.phoneAccountId}',
-                              style: mono),
-                          Text(
-                              'SIM NAME   : ${_callLogEntries?.simDisplayName}',
-                              style: mono),
-                        ],
-                      ),
-                    ),
-            ],
-          ),
+            const Text(
+              "Status of call",
+              style: TextStyle(fontSize: 24),
+            ),
+            Icon(
+              getIcons(),
+              color: getColor(),
+              size: 80,
+            )
+          ],
         ),
       ),
     );
