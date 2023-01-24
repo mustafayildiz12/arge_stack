@@ -50,7 +50,7 @@ class _CallPageState extends State<CallPage> {
       setState(() {
         if (event != null) {
           status = event;
-          Future.delayed(const Duration(seconds: 3)).then((_) => endCall());
+          endCall();
         }
       });
     });
