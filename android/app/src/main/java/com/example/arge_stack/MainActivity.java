@@ -46,12 +46,10 @@ public class MainActivity extends FlutterActivity {
         }
 
         if (telecomManager.isInCall()) {
-            telecomManager.endCall();
-            /// If phone is in call(even not opened)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                ///finish the call
-
+                telecomManager.endCall();
             }
+        
         }
         return true;
     }
