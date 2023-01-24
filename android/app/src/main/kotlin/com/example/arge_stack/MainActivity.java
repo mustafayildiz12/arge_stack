@@ -13,7 +13,7 @@ import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodChannel;
 
-public class mainActivity2 extends FlutterActivity {
+public class MainActivity extends FlutterActivity {
 
     static final String CHANNEL = "telephony";
     private MethodChannel methodChannel;
